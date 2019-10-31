@@ -180,6 +180,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int id = item.getItemId();
         if (id == R.id.menu_preferencias) {
             Toast.makeText(this, "Preferencias", Toast.LENGTH_LONG).show();
+            abrePreferencias();
             return true;
         } else if (id == R.id.menu_acerca) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -244,6 +245,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             tabs.setVisibility(View.GONE);
             drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
         }
+    }
+
+    public void abrePreferencias() {
+        int idContenedor = (findViewById(R.id.contenedor_pequeno) != null) ? R.id.contenedor_pequeno : R.id.contenedor_izquierdo;
+        PreferenciasFragment prefFragment = new PreferenciasFragment();
+        getSupportFragmentManager().beginTransaction().replace(idContenedor, prefFragment).addToBackStack(null).commit();
     }
 
 }
