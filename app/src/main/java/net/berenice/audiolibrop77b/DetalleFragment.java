@@ -1,5 +1,6 @@
 package net.berenice.audiolibrop77b;
 
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
@@ -15,6 +16,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceManager;
 
 import java.io.IOException;
 
@@ -94,7 +96,12 @@ public class DetalleFragment extends Fragment implements View.OnTouchListener, M
 
     @Override
     public void start() {
-        mediaPlayer.start();
+
+        SharedPreferences preferencias = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        if (preferencias.getBoolean("pref_autoreproducir", true))
+        {  mediaPlayer.start();
+        }
+        //mediaPlayer.start();
     }
 
     @Override

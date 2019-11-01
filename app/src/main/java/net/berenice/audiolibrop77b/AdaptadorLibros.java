@@ -47,6 +47,8 @@ public class AdaptadorLibros extends RecyclerView.Adapter<AdaptadorLibros.ViewHo
         Libro libro = vectorLibros.get(position);
         holder.portada.setImageResource(libro.recursoImagen);
         holder.titulo.setText(libro.titulo);
+        holder.itemView.setScaleX(1);
+        holder.itemView.setScaleY(1);
     }
 
     @Override

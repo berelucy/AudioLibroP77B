@@ -1,5 +1,8 @@
 package net.berenice.audiolibrop77b;
 
+import android.animation.Animator;
+import android.animation.AnimatorInflater;
+import android.animation.AnimatorSet;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -10,16 +13,16 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.SearchView;
-import android.widget.TextView;
-import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -28,7 +31,7 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Vector;
 
-public class SelectorFragment extends Fragment {
+public class SelectorFragment extends Fragment implements Animator.AnimatorListener {
 
     RecyclerView recyclerView;
     RecyclerView.LayoutManager layoutManager;
@@ -42,7 +45,7 @@ public class SelectorFragment extends Fragment {
         if (context instanceof AppCompatActivity) {
             this.actividad = (AppCompatActivity) context;
             vectorLibros = Libro.ejemploLibros();
-            adaptadorLibros = new AdaptadorLibrosFiltro(this.actividad,vectorLibros);
+            adaptadorLibros = new AdaptadorLibrosFiltro(this.actividad, vectorLibros);
         }
     }
 
@@ -52,9 +55,9 @@ public class SelectorFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.fragment_selector,container,false);
-        recyclerView=v.findViewById(R.id.recycler_view);
-        recyclerView.setLayoutManager(new GridLayoutManager(actividad,2));
+        View v = inflater.inflate(R.layout.fragment_selector, container, false);
+        recyclerView = v.findViewById(R.id.recycler_view);
+        recyclerView.setLayoutManager(new GridLayoutManager(actividad, 2));
         recyclerView.setAdapter(adaptadorLibros);
         adaptadorLibros.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -71,11 +74,16 @@ public class SelectorFragment extends Fragment {
             }
         });
 
+        DefaultItemAnimator animator = new DefaultItemAnimator();
+        animator.setAddDuration(2000);
+        animator.setMoveDuration(2000);
+        recyclerView.setItemAnimator(animator);
+
         adaptadorLibros.setOnItemLongClickListener(new View.OnLongClickListener() {
             public boolean onLongClick(final View v) {
                 final int id = recyclerView.getChildAdapterPosition(v);
                 AlertDialog.Builder menu = new AlertDialog.Builder(actividad);
-                CharSequence[] opciones = { "Compartir", "Borrar ", "Insertar" };
+                CharSequence[] opciones = {"Compartir", "Borrar ", "Insertar"};
                 menu.setItems(opciones, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int opcion) {
                         switch (opcion) {
@@ -87,29 +95,44 @@ public class SelectorFragment extends Fragment {
                                 i.putExtra(Intent.EXTRA_TEXT, libro.urlAudio);
                                 startActivity(Intent.createChooser(i, "Compartir"));
                                 break;
-                                case 1: //Borrar
-                                    Snackbar.make(v,"¿Estás seguro?", Snackbar.LENGTH_LONG).setAction("SI",
-                                            new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
-                                        //vectorLibros.remove(id);
-                                        adaptadorLibros.borrar(id);
-                                        adaptadorLibros.notifyDataSetChanged();
-                                        }
-                                    }).show();
-                                    break;
-                                case 2: //Insertar
-                                    //vectorLibros.add(vectorLibros.elementAt(id));
-                                    int posicion = recyclerView.getChildLayoutPosition(v);
-                                    adaptadorLibros.insertar((Libro) adaptadorLibros.getItem(posicion));
-                                    adaptadorLibros.notifyDataSetChanged();
-                                    Snackbar.make(v,"Libro insertado", Snackbar.LENGTH_INDEFINITE).setAction("OK", new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
+                            case 1: //Borrar
+                                Snackbar.make(v, "¿Estás seguro?", Snackbar.LENGTH_LONG).setAction("SI",
+                                        new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+                                                //vectorLibros.remove(id);
+                                               /* Animation anim = AnimationUtils.loadAnimation(actividad,
+                                                        R.anim.menguar);
+                                                anim.setAnimationListener((Animation.AnimationListener) SelectorFragment.this);
+                                                v.startAnimation(anim);
 
-                                        }
-                                    }).show();
-                                    break;
+                                                */
+
+
+                                                Animator anim = AnimatorInflater.loadAnimator(actividad, R.animator.menguar);
+                                                anim.addListener(SelectorFragment.this);
+                                                anim.setTarget(v);
+                                                anim.start();
+
+
+                                                adaptadorLibros.borrar(id);
+                                               // adaptadorLibros.notifyDataSetChanged();
+                                                //adaptadorLibros.notifyItemInserted(0);
+                                            }
+                                        }).show();
+                                break;
+                            case 2: //Insertar
+                                //vectorLibros.add(vectorLibros.elementAt(id));
+                                int posicion = recyclerView.getChildLayoutPosition(v);
+                                adaptadorLibros.insertar((Libro) adaptadorLibros.getItem(posicion));
+                                adaptadorLibros.notifyDataSetChanged();
+                                Snackbar.make(v, "Libro insertado", Snackbar.LENGTH_INDEFINITE).setAction("OK", new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+
+                                    }
+                                }).show();
+                                break;
                         }
                     }
                 });
@@ -118,6 +141,7 @@ public class SelectorFragment extends Fragment {
             }
         });
         setHasOptionsMenu(true);
+
         return v;
     }
 
@@ -165,9 +189,9 @@ public class SelectorFragment extends Fragment {
             ((MainActivity) actividad).irUltimoVisitado();
             return true;
         } else if (id == R.id.menu_buscar) {
-        return true;
-    }
-    return super.onOptionsItemSelected(item);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
 
@@ -177,4 +201,36 @@ public class SelectorFragment extends Fragment {
         super.onResume();
     }
 
+
+
+
+    @Override
+    public void onAnimationStart(Animator animation, boolean isReverse) {
+
+    }
+
+    @Override
+    public void onAnimationEnd(Animator animation, boolean isReverse) {
+
+    }
+
+    @Override
+    public void onAnimationStart(Animator animation) {
+
+    }
+
+    @Override
+    public void onAnimationEnd(Animator animation) {
+adaptadorLibros.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onAnimationCancel(Animator animation) {
+
+    }
+
+    @Override
+    public void onAnimationRepeat(Animator animation) {
+
+    }
 }
