@@ -1,9 +1,17 @@
 package net.berenice.audiolibrop77b;
 
+import android.app.Notification;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -12,158 +20,171 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.MediaController;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
 
 import java.io.IOException;
 
-public class DetalleFragment extends Fragment implements View.OnTouchListener, MediaPlayer.OnPreparedListener, MediaController.MediaPlayerControl {
+public class DetalleFragment extends Fragment implements View.OnTouchListener {
 
     public static String ARG_ID_LIBRO = "id_libro";
     MediaPlayer mediaPlayer;
     MediaController mediaController;
+    String guardar = "";
+    String guardarlibro = "";
+    boolean first = false;
+    MisServicioEnlazado misServicioEnlazado;
+
+    boolean mBound = false;
+    int idlibro;
+
+    public final String NotificiacionChanelID = "chanel_id";
+
+    @Override
+    public View onCreateView(LayoutInflater inflador, ViewGroup
+            contenedor, Bundle savedInstanceState) {
+        Intent intent = new Intent(getActivity().getApplicationContext(), MisServicioEnlazado.class);
+        getActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
+        Libro libro;
+        View vista = inflador.inflate(R.layout.fragment_detalle,
+                contenedor, false);
+        Bundle args = getArguments();
+        if (args != null) {
+            int position = args.getInt(ARG_ID_LIBRO);
+            idlibro = args.getInt(ARG_ID_LIBRO);
+            libro = ((Aplicacion) getActivity().getApplication())
+                    .getVectorLibros().elementAt(position);
+            ponInfoLibro(position, vista);
+        } else {
+            idlibro = 0;
+            ponInfoLibro(0, vista);
+            libro = ((Aplicacion) getActivity().getApplication())
+                    .getVectorLibros().elementAt(0);
+
+        }
+//        ContextCompat.startForegroundService(getActivity().getApplicationContext(),intent);
+        return vista;
+    }
 
     private void ponInfoLibro(int id, View vista) {
-        Libro libro = Libro.ejemploLibros().elementAt(id);
+        Libro libro = ((Aplicacion) getActivity().getApplication())
+                .getVectorLibros().elementAt(id);
         ((TextView) vista.findViewById(R.id.titulo)).setText(libro.titulo);
         ((TextView) vista.findViewById(R.id.autor)).setText(libro.autor);
-        ((ImageView) vista.findViewById(R.id.portada)).setImageResource(libro.recursoImagen);
+        ((ImageView) vista.findViewById(R.id.portada))
+                .setImageResource(libro.recursoImagen);
         vista.setOnTouchListener(this);
-        if (mediaPlayer != null){
-            mediaPlayer.release();
-        }
-        mediaPlayer = new MediaPlayer();
-        mediaPlayer.setOnPreparedListener(this);
-        mediaController = new MediaController(getActivity());
-        Uri audio = Uri.parse(libro.urlAudio);// uri ubicacion de recursos
-        try {
-            mediaPlayer.setDataSource(getActivity(), audio);
-            mediaPlayer.prepareAsync();
-        } catch (IOException e) {
-            Log.e("Audiolibros", "ERROR: No se puede reproducir "+audio,e);
-        }
+
+
+//        Toast.makeText(getActivity(), servicio.getRandomNumber(), Toast.LENGTH_SHORT).show();
     }
 
     public void ponInfoLibro(int id) {
         ponInfoLibro(id, getView());
     }
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
 
-        View vista = inflater.inflate(R.layout.fragment_detalle,container, false);
-        Bundle args = getArguments();
-        if (args != null) {
-            int position = args.getInt(ARG_ID_LIBRO);
-            ponInfoLibro(position, vista);
-        } else {
-            ponInfoLibro(0, vista);
+    @Override
+    public boolean onTouch(View vista, MotionEvent evento) {
+
+        try {
+            if (misServicioEnlazado.getMediaPlayer() != null) {
+                if (misServicioEnlazado.libroID != this.idlibro) {
+                    if (idlibro >= 0) {
+                        NotificationCompat.Builder noti = new NotificationCompat.Builder(getActivity().getApplicationContext(),
+                                NotificiacionChanelID).setContentTitle("AudioLibros").setContentText("Reproducionedo Audio").setPriority(NotificationCompat.PRIORITY_LOW);
+                        Intent intent = new Intent(getActivity().getApplicationContext(), MisServicioEnlazado.class);
+                        misServicioEnlazado.startForeground(0, noti.build());
+                        misServicioEnlazado.notificacion();
+                        Libro libro = ((Aplicacion) getActivity().getApplication())
+                                .getVectorLibros().elementAt(idlibro);
+                        misServicioEnlazado.setMediaPlayer(getActivity(), libro, this.getView(), idlibro);
+                    }
+                } else {
+                    misServicioEnlazado.showMedia();
+                }
+
+            } else {
+                if (idlibro >= 0) {
+                    NotificationCompat.Builder noti = new NotificationCompat.Builder(getActivity().getApplicationContext(), NotificiacionChanelID).setContentTitle("AudioLibros").setContentText("Reproducionedo Audio").setPriority(NotificationCompat.PRIORITY_LOW);
+
+                    misServicioEnlazado.startForeground(0, noti.build());
+                    Intent intent = new Intent(getActivity().getApplicationContext(), MisServicioEnlazado.class);
+//                    ContextCompat.startForegroundService(getActivity().getApplicationContext(),intent);
+                    misServicioEnlazado.startForeground(0, new Notification());
+                    misServicioEnlazado.notificacion();
+                    Libro libro = ((Aplicacion) getActivity().getApplication())
+                            .getVectorLibros().elementAt(idlibro);
+                    misServicioEnlazado.setMediaPlayer(getActivity(), libro, this.getView(), idlibro);
+                }
+            }
+
+        } catch (Exception e) {
+            Toast.makeText(getActivity(), "algo esta pasando \n" + e, Toast.LENGTH_SHORT).show();
         }
-        return vista;
-    }
 
-    @Override
-    public void onPrepared(MediaPlayer mediaPlayer) {
-        Log.d("Audiolibros", "Entramos en onPrepared de MediaPlayer");
-        mediaPlayer.start();
-        mediaController.setMediaPlayer(this);
-        mediaController.setAnchorView(getView().findViewById(R.id.fragment_detalle));
-        //mediaController.setPadding(0, 0, 0,110);
-        mediaController.setEnabled(true);
-        mediaController.show();
-    }
 
-    @Override
-    public boolean onTouch(View view, MotionEvent motionEvent) {
-        mediaController.show();
+//        servicio.showMedia();
         return false;
     }
 
-    @Override public void onStop() {
-        mediaController.hide();
-        try {
-            mediaPlayer.stop();
-            mediaPlayer.release();
-        } catch (Exception e) {
-            Log.d("Audiolibros", "Error en mediaPlayer.stop()");   }   super.onStop();
-    }
-
     @Override
-    public void start() {
+    public void onStop() {
 
-        SharedPreferences preferencias = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        if (preferencias.getBoolean("pref_autoreproducir", true))
-        {  mediaPlayer.start();
+        SharedPreferences preferencias = PreferenceManager
+                .getDefaultSharedPreferences(getActivity());
+
+        if (!preferencias.getBoolean("pref_autoreproducir", true)) {
+            try {
+                misServicioEnlazado.Stop();
+            } catch (Exception e) {
+
+            }
         }
-        //mediaPlayer.start();
+
+
+        super.onStop();
+
     }
 
     @Override
-    public void pause() {
-        mediaPlayer.pause();
+    public void onDestroy() {
+        misServicioEnlazado.stopSelf();
+        super.onDestroy();
     }
 
     @Override
-    public int getDuration() {
-        return mediaPlayer.getDuration();
-    }
-
-    @Override
-    public int getCurrentPosition() {
-        try {
-            return mediaPlayer.getCurrentPosition();
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    @Override public void onResume(){
+    public void onResume() {
         DetalleFragment detalleFragment = (DetalleFragment)
                 getFragmentManager().findFragmentById(R.id.fragment_detalle);
-        if (detalleFragment == null ) {
+        if (detalleFragment == null) {
             ((MainActivity) getActivity()).mostrarElementos(false);
         }
         super.onResume();
     }
 
-    @Override
-    public void seekTo(int i) {
-        mediaPlayer.seekTo(i);
-    }
 
-    @Override
-    public boolean isPlaying() {
-        return mediaPlayer.isPlaying();
-    }
+    ServiceConnection connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MisServicioEnlazado.MiBinder binder = (MisServicioEnlazado.MiBinder) service;
+            misServicioEnlazado = binder.getService();
+            mBound = true;
 
-    @Override
-    public int getBufferPercentage() {
-        return 0;
-    }
+        }
 
-    @Override
-    public boolean canPause() {
-        return true;
-    }
-
-    @Override
-    public boolean canSeekBackward() {
-        return true;
-    }
-
-    @Override
-    public boolean canSeekForward() {
-        return true;
-    }
-
-    @Override
-    public int getAudioSessionId() {
-        return 0;
-    }
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mBound = false;
+        }
+    };
 }
+
+
+

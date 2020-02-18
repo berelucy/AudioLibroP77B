@@ -11,8 +11,13 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.TestLooperManager;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -113,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         break;
                 }
                 adaptador.notifyDataSetChanged();
-                adaptador = ((Aplicacion) getApplicationContext()).getAdaptador();
+
             }
 
             @Override
@@ -126,9 +131,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             }
 
+
         });
 
-
+        adaptador = ((Aplicacion) getApplicationContext()).getAdaptador();
 
         /*recyclerView = findViewById(R.id.recycler_view);
         layoutManager = new GridLayoutManager(this,2);
@@ -235,6 +241,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             super.onBackPressed();
         }
     }
+
     public void mostrarElementos(boolean mostrar) {
         appBarLayout.setExpanded(mostrar);
         toggle.setDrawerIndicatorEnabled(mostrar);
@@ -253,6 +260,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         getSupportFragmentManager().beginTransaction().replace(idContenedor, prefFragment).addToBackStack(null).commit();
     }
 
+
+
 }
+
+
+
+
 
 
